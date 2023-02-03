@@ -64,7 +64,7 @@ parser.add_argument('--save_path',      type=str,   default="exps/exp1", help='P
 
 ## Training and test data
 parser.add_argument('--train_list',     type=str,   default="data/train_list.txt",  help='Train list')
-parser.add_argument('--test_list',      type=str,   default="data/test_list.txt",   help='Evaluation list')
+parser.add_argument('--test_list',      type=str,   default="data/voxcelebo/test_list.txt",   help='Evaluation list')
 parser.add_argument('--train_path',     type=str,   default="data/voxceleb2", help='Absolute path to the train set')
 parser.add_argument('--test_path',      type=str,   default="data/voxceleb1", help='Absolute path to the test set')
 parser.add_argument('--musan_path',     type=str,   default="data/musan_split", help='Absolute path to the test set')
@@ -75,7 +75,7 @@ parser.add_argument('--n_mels',         type=int,   default=40,     help='Number
 parser.add_argument('--log_input',      type=bool,  default=False,  help='Log input features')
 parser.add_argument('--model',          type=str,   default="",     help='Name of model definition')
 parser.add_argument('--encoder_type',   type=str,   default="SAP",  help='Type of encoder')
-parser.add_argument('--nOut',           type=int,   default=512,    help='Embedding size in the last FC layer')
+parser.add_argument('--nOut',           type=int,   default=192,    help='Embedding size in the last FC layer')
 parser.add_argument('--sinc_stride',    type=int,   default=10,    help='Stride size of the first analytic filterbank layer of RawNet3')
 
 ## For test only

@@ -16,6 +16,8 @@ from scipy.io import wavfile
 from torch.utils.data import Dataset, DataLoader
 import torch.distributed as dist
 
+from python_speech_features import fbank
+
 def round_down(num, divisor):
     return num - (num%divisor)
 
@@ -48,11 +50,12 @@ def loadWAV(filename, max_frames, evalmode=True, num_eval=10):
         feats.append(audio)
     else:
         for asf in startframe:
-            feats.append(audio[int(asf):int(asf)+max_audio])
-
-    feat = numpy.stack(feats,axis=0).astype(numpy.float)
-
-    return feat;
+            s_audio = audio[int(asf):int(asf)+max_audio]
+            feats.append(s_audio)
+    feat = numpy.stack(feats, axis=0).astype(numpy.float)
+    feat = fbank(feat, sample_rate, nfilt=80)[0]
+    feat = numpy.expand_dims(feat, axis=0)
+    return feat
     
 class AugmentWAV(object):
 
