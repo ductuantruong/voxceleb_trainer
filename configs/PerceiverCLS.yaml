@@ -1,0 +1,18 @@
+model: PerceiverCLS
+ch_in: 80,
+latent_dim: 192 
+embed_dim: 256
+embed_reps: 2
+attn_mlp_dim: 256 
+trnfr_mlp_dim: 256 
+trnfr_heads: 8
+dropout: 0.2
+trnfr_layers: 3
+n_blocks: 2
+max_len : 10000
+final_layer : '1dE'
+batch_size: 32
+trainfunc: aamsoftmax
+lr_decay: 0.75
+weight_decay: 5e-05
+save_path: exps/PerceiverCLS
