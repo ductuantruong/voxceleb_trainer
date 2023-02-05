@@ -29,7 +29,7 @@ parser.add_argument('--max_frames',     type=int,   default=200,    help='Input 
 parser.add_argument('--eval_frames',    type=int,   default=300,    help='Input length to the network for testing 0 uses the whole files')
 parser.add_argument('--batch_size',     type=int,   default=200,    help='Batch size, number of speakers per batch')
 parser.add_argument('--max_seg_per_spk', type=int,  default=500,    help='Maximum number of utterances per speaker per epoch')
-parser.add_argument('--nDataLoaderThread', type=int, default=5,     help='Number of loader threads')
+parser.add_argument('--nDataLoaderThread', type=int, default=20,     help='Number of loader threads')
 parser.add_argument('--augment',        type=bool,  default=False,  help='Augment input')
 parser.add_argument('--seed',           type=int,   default=10,     help='Seed for the random number generator')
 
@@ -84,7 +84,7 @@ parser.add_argument('--eval',           dest='eval', action='store_true', help='
 ## Distributed and mixed precision training
 parser.add_argument('--port',           type=str,   default="8888", help='Port for distributed training, input as text')
 parser.add_argument('--distributed',    dest='distributed', action='store_true', help='Enable distributed training')
-parser.add_argument('--mixedprec',      dest='mixedprec',   action='store_true', help='Enable mixed precision training')
+parser.add_argument('--mixedprec',      dest='mixedprec',   action='store_false', help='Enable mixed precision training')
 
 args = parser.parse_args()
 
@@ -267,6 +267,7 @@ def main():
     print('Save path:',args.save_path)
 
     if args.distributed:
+        print('Distributed Training...')
         mp.spawn(main_worker, nprocs=n_gpus, args=(n_gpus, args))
     else:
         main_worker(0, None, args)

@@ -218,9 +218,12 @@ class PerceiverCLS(nn.Module):
         self.embed_reps = embed_reps
         
 
-    def forward(self, x):
+    def forward(self, x, evaluate=False):
         #x should come in as [batch, time, filters]
-        x = x.reshape(-1, 200, x.size()[-1])
+        if evaluate:
+            x = x.reshape(1, -1, x.size()[-1])
+        else:
+            x = x.reshape(1024, -1, x.size()[-1])
         if len(x.shape)!=3:
             raise Exception("Check formatting of input")        
         
@@ -258,7 +261,7 @@ class PerceiverCLS(nn.Module):
             latent = latent.permute(1,2,0) #does not matter as long as batch is put back into the first dimension
             latent = latent.flatten(1,2)
         out = self.ch_compression(latent)
-        out = self.final_norm(out.squeeze()).unsqueeze(1)
+        out = self.final_norm(out.squeeze(1)).unsqueeze(1)
         # Finally, we project the output to the number of target classes
 
 

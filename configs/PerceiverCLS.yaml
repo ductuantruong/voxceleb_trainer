@@ -11,7 +11,7 @@ trnfr_layers: 3
 n_blocks: 2
 max_len : 10000
 final_layer : '1dE'
-batch_size: 32
+batch_size: 1024
 trainfunc: aamsoftmax
 lr_decay: 0.75
 weight_decay: 5e-05

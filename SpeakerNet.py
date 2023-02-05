@@ -19,8 +19,8 @@ class WrappedModel(nn.Module):
         super(WrappedModel, self).__init__()
         self.module = model
 
-    def forward(self, x, label=None):
-        return self.module(x, label)
+    def forward(self, x, label=None, evaluate=False):
+        return self.module(x, label, evaluate)
 
 
 class SpeakerNet(nn.Module):
@@ -35,10 +35,10 @@ class SpeakerNet(nn.Module):
 
         self.nPerSpeaker = nPerSpeaker
 
-    def forward(self, data, label=None):
+    def forward(self, data, label=None, evaluate=False):
 
         data = data.reshape(-1, data.size()[-1]).cuda()
-        outp = self.__S__.forward(data)
+        outp = self.__S__.forward(data, evaluate)
 
         if label == None:
             return outp
@@ -170,7 +170,7 @@ class ModelTrainer(object):
         for idx, data in enumerate(test_loader):
             inp1 = data[0][0].cuda()
             with torch.no_grad():
-                ref_feat = self.__model__(inp1).detach().cpu()
+                ref_feat = self.__model__(inp1, evaluate=True).detach().cpu()
             feats[data[1][0]] = ref_feat
             telapsed = time.time() - tstart
 
@@ -191,7 +191,6 @@ class ModelTrainer(object):
         if rank == 0:
 
             tstart = time.time()
-            print("")
 
             ## Combine gathered features
             if distributed:
@@ -215,7 +214,8 @@ class ModelTrainer(object):
                     ref_feat = F.normalize(ref_feat, p=2, dim=1)
                     com_feat = F.normalize(com_feat, p=2, dim=1)
 
-                dist = torch.cdist(ref_feat.reshape(num_eval, -1), com_feat.reshape(num_eval, -1)).detach().cpu().numpy()
+                # dist = torch.cdist(ref_feat.reshape(num_eval, -1), com_feat.reshape(num_eval, -1)).detach().cpu().numpy()
+                dist = torch.cdist(ref_feat.reshape(1, -1), com_feat.reshape(1, -1)).detach().cpu().numpy()
 
                 score = -1 * numpy.mean(dist)
 
