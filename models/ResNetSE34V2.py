@@ -10,7 +10,7 @@ from models.ResNetBlocks import *
 from utils import PreEmphasis
 
 class ResNetSE(nn.Module):
-    def __init__(self, block, layers, num_filters, nOut, encoder_type='SAP', n_mels=40, log_input=True, **kwargs):
+    def __init__(self, block, layers, num_filters, nOut, encoder_type='SAP', n_mels=40, num_classes=1211, log_input=True, **kwargs):
         super(ResNetSE, self).__init__()
 
         print('Embedding size is %d, encoder %s.'%(nOut, encoder_type))
@@ -24,6 +24,7 @@ class ResNetSE(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.bn1 = nn.BatchNorm2d(num_filters[0])
         
+        self.patchup = PatchUp(block_size=5, gamma=0.9, num_classes=self.num_classes)
 
         self.layer1 = self._make_layer(block, num_filters[0], layers[0])
         self.layer2 = self._make_layer(block, num_filters[1], layers[1], stride=(2, 2))
@@ -84,7 +85,7 @@ class ResNetSE(nn.Module):
         nn.init.xavier_normal_(out)
         return out
 
-    def forward(self, x):
+    def forward(self, x, label=None):
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
@@ -98,7 +99,10 @@ class ResNetSE(nn.Module):
 
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer3(x)
+        if label is None:
+            x = self.layer3(x)
+        else:
+            target_a, target_b, target_reweighted, x, portion = self.layer3(x, label)
         x = self.layer4(x)
 
         x = x.reshape(x.size()[0],-1,x.size()[-1])
@@ -115,7 +119,10 @@ class ResNetSE(nn.Module):
         x = x.view(x.size()[0], -1)
         x = self.fc(x)
 
-        return x
+        if label is None:
+            return x
+        else:
+            return target_a, target_b, target_reweighted, x, portion
 
 
 def MainModel(nOut=256, **kwargs):

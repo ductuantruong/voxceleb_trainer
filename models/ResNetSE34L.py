@@ -8,6 +8,21 @@ import torch.nn.functional as F
 from torch.nn import Parameter
 from models.ResNetBlocks import *
 
+def get_lambda(alpha=1.0):
+    """
+    computes the interpolation policy coefficient in the mixup.
+    Args:
+        alpha: controls the shape of the Beta distribution.
+
+    Returns:
+        lam: a float number in [0, 1] that is the interpolation policy coefficient.
+    """
+    if alpha > 0.:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1.
+    return lam
+
 class ResNetSE(nn.Module):
     def __init__(self, block, layers, num_filters, nOut, encoder_type='SAP', n_mels=40, log_input=True, **kwargs):
         super(ResNetSE, self).__init__()
@@ -74,7 +89,7 @@ class ResNetSE(nn.Module):
         nn.init.xavier_normal_(out)
         return out
 
-    def forward(self, x):
+    def forward(self, x, target=None):
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
@@ -89,6 +104,9 @@ class ResNetSE(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
+        if target is not None:
+            target_a, target_b, target_reweighted, x, portion = self.patchup(x, target, lam=get_lambda())
+
         x = self.layer4(x)
         
         x = torch.mean(x, dim=2, keepdim=True)
@@ -111,7 +129,10 @@ class ResNetSE(nn.Module):
         x = x.view(x.size()[0], -1)
         x = self.fc(x)
 
-        return x
+        if target is not None:
+            return
+        else:
+            return target_a, target_b, target_reweighted, x, portion
 
 
 def MainModel(nOut=256, **kwargs):
