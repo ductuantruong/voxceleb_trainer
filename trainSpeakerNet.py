@@ -213,7 +213,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
         clr = [x['lr'] for x in trainer.__optimizer__.param_groups]
 
-        loss, traineer = trainer.train_network(train_loader, verbose=(args.gpu == 0))
+        loss, traineer = trainer.train_network(train_loader, verbose=False)
 
         if args.gpu == 0:
             print('\n',time.strftime("%Y-%m-%d %H:%M:%S"), "Epoch {:d}, TEER/TAcc {:2.2f}, TLOSS {:f}, LR {:f}".format(it, traineer, loss, max(clr)))

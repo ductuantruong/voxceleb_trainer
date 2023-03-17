@@ -4,4 +4,4 @@ encoder_type: SAP
 trainfunc: angleproto
 save_path: exps/ResNetSE34L_AP
 nPerSpeaker: 2
-batch_size: 200
+batch_size: 768
