@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter
 from models.ResNetBlocks import *
+from models.patchup import *
 
 def get_lambda(alpha=1.0):
     """
@@ -24,7 +25,7 @@ def get_lambda(alpha=1.0):
     return lam
 
 class ResNetSE(nn.Module):
-    def __init__(self, block, layers, num_filters, nOut, encoder_type='SAP', n_mels=40, log_input=True, **kwargs):
+    def __init__(self, block, layers, num_filters, nOut, encoder_type='SAP', n_mels=40, log_input=True, num_classes=5994, **kwargs):
         super(ResNetSE, self).__init__()
 
         print('Embedding size is %d, encoder %s.'%(nOut, encoder_type))
@@ -59,13 +60,14 @@ class ResNetSE(nn.Module):
             raise ValueError('Undefined encoder')
 
         self.fc = nn.Linear(out_dim, nOut)
-
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+
+        self.patchup = PatchUp(block_size=5, gamma=0.9, num_classes=num_classes)
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -90,23 +92,20 @@ class ResNetSE(nn.Module):
         return out
 
     def forward(self, x, target=None):
-
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):
                 x = self.torchfb(x)+1e-6
                 if self.log_input: x = x.log()
                 x = self.instancenorm(x).unsqueeze(1).detach()
-
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer3(x)
         if target is not None:
             target_a, target_b, target_reweighted, x, portion = self.patchup(x, target, lam=get_lambda())
-
+        x = self.layer3(x)
         x = self.layer4(x)
         
         x = torch.mean(x, dim=2, keepdim=True)
@@ -129,8 +128,8 @@ class ResNetSE(nn.Module):
         x = x.view(x.size()[0], -1)
         x = self.fc(x)
 
-        if target is not None:
-            return
+        if target is None:
+            return x
         else:
             return target_a, target_b, target_reweighted, x, portion
 

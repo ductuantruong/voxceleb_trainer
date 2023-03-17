@@ -4,8 +4,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy, sys, random
+import numpy as np
+import sys, random
 import time, itertools, importlib
+from torch.autograd import Variable
 
 from DatasetLoader import test_dataset_loader
 from torch.cuda.amp import autocast, GradScaler
@@ -19,8 +21,8 @@ class WrappedModel(nn.Module):
         super(WrappedModel, self).__init__()
         self.module = model
 
-    def forward(self, x, label=None):
-        return self.module(x, label)
+    def forward(self, x, label=None, is_patchup=False):
+        return self.module(x, label, is_patchup)
 
 
 class SpeakerNet(nn.Module):
@@ -35,19 +37,27 @@ class SpeakerNet(nn.Module):
 
         self.nPerSpeaker = nPerSpeaker
 
-    def forward(self, data, label=None):
-
+    def forward(self, data, label=None, is_patchup=False):
         data = data.reshape(-1, data.size()[-1]).cuda()
-        outp = self.__S__.forward(data)
-
+        
+        if is_patchup:
+            target_a, target_b, target_reweighted, outp, portion = self.__S__.forward(data, label)
+        else:
+            outp = self.__S__.forward(data)
         if label == None:
             return outp
 
         else:
 
             outp = outp.reshape(self.nPerSpeaker, -1, outp.size()[-1]).transpose(1, 0).squeeze(1)
-
-            nloss, prec1 = self.__L__.forward(outp, label)
+            if is_patchup:
+                nloss, prec1 = self.__L__.forward(outp, 
+                                                  torch.autograd.Variable(target_a), 
+                                                  target_reweighted, 
+                                                  torch.autograd.Variable(target_b), 
+                                                  portion)
+            else:
+                nloss, prec1 = self.__L__.forward(outp, label)
 
             return nloss, prec1
 
@@ -69,6 +79,8 @@ class ModelTrainer(object):
 
         self.mixedprec = mixedprec
 
+        self.patchup_prob = 0.7
+        
         assert self.lr_step in ["epoch", "iteration"]
 
     # ## ===== ===== ===== ===== ===== ===== ===== =====
@@ -97,16 +109,30 @@ class ModelTrainer(object):
 
             label = torch.LongTensor(data_label).cuda()
 
-            if self.mixedprec:
-                with autocast():
-                    nloss, prec1 = self.__model__(data, label)
-                self.scaler.scale(nloss).backward()
-                self.scaler.step(self.__optimizer__)
-                self.scaler.update()
+            r = np.random.rand(1)
+            data, label_var = Variable(data), Variable(label)
+            if r < self.patchup_prob:
+                if self.mixedprec:
+                    with autocast():
+                        nloss, prec1 = self.__model__(data, label, is_patchup=True)
+                    self.scaler.scale(nloss).backward()
+                    self.scaler.step(self.__optimizer__)
+                    self.scaler.update()
+                else:
+                    nloss, prec1 = self.__model__(data, label, is_patchup=True)
+                    nloss.backward()
+                    self.__optimizer__.step()
             else:
-                nloss, prec1 = self.__model__(data, label)
-                nloss.backward()
-                self.__optimizer__.step()
+                if self.mixedprec:
+                    with autocast():
+                        nloss, prec1 = self.__model__(data, label)
+                    self.scaler.scale(nloss).backward()
+                    self.scaler.step(self.__optimizer__)
+                    self.scaler.update()
+                else:
+                    nloss, prec1 = self.__model__(data, label)
+                    nloss.backward()
+                    self.__optimizer__.step()             
 
             loss += nloss.detach().cpu().item()
             top1 += prec1.detach().cpu().item()
@@ -217,7 +243,7 @@ class ModelTrainer(object):
 
                 dist = torch.cdist(ref_feat.reshape(num_eval, -1), com_feat.reshape(num_eval, -1)).detach().cpu().numpy()
 
-                score = -1 * numpy.mean(dist)
+                score = -1 * np.mean(dist)
 
                 all_scores.append(score)
                 all_labels.append(int(data[0]))

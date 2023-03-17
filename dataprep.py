@@ -149,13 +149,13 @@ def convert(args):
 ## Split MUSAN for faster random access
 ## ========== ===========
 def split_musan(args):
-
+    print('Splitting ...')
     files = glob.glob('%s/musan/*/*/*.wav'%args.save_path)
 
     audlen = 16000*5
     audstr = 16000*3
 
-    for idx,file in enumerate(files):
+    for idx, file in enumerate(files):
         fs,aud = wavfile.read(file)
         writedir = os.path.splitext(file.replace('/musan/','/musan_split/'))[0]
         os.makedirs(writedir)
@@ -185,8 +185,8 @@ if __name__ == "__main__":
     f.close()
 
     if args.augment:
-        download(args,augfiles)
-        part_extract(args,os.path.join(args.save_path,'rirs_noises.zip'),['RIRS_NOISES/simulated_rirs/mediumroom','RIRS_NOISES/simulated_rirs/smallroom'])
+        #download(args,augfiles)
+        #part_extract(args,os.path.join(args.save_path,'rirs_noises.zip'),['RIRS_NOISES/simulated_rirs/mediumroom','RIRS_NOISES/simulated_rirs/smallroom'])
         full_extract(args,os.path.join(args.save_path,'musan.tar.gz'))
         split_musan(args)
 

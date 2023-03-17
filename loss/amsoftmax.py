@@ -19,11 +19,14 @@ class LossFunction(nn.Module):
         self.in_feats = nOut
         self.W = torch.nn.Parameter(torch.randn(nOut, nClasses), requires_grad=True)
         self.ce = nn.CrossEntropyLoss()
+        self.bce = nn.BCELoss()
+        self.softmax = nn.Softmax(dim=1)
         nn.init.xavier_normal_(self.W, gain=1)
-
+        self.loss_alpha = 1
+        self.loss_beta = 1
         print('Initialised AMSoftmax m=%.3f s=%.3f'%(self.m,self.s))
 
-    def forward(self, x, label=None):
+    def forward(self, x, label=None, target_reweighted=None, target_b=None, portion=None):
 
         assert x.size()[0] == label.size()[0]
         assert x.size()[1] == self.in_feats
@@ -39,7 +42,12 @@ class LossFunction(nn.Module):
         if x.is_cuda: delt_costh = delt_costh.cuda()
         costh_m = costh - delt_costh
         costh_m_s = self.s * costh_m
-        loss    = self.ce(costh_m_s, label)
+        if target_reweighted is not None:
+            loss    = self.ce(costh_m_s, label) * portion \
+                        + self.ce(costh_m_s, target_b) * (1 - portion) \
+                        + self.loss_beta * self.bce(self.softmax(costh_m_s), target_reweighted)
+        else:
+            loss    = self.ce(costh_m_s, label)
         prec1   = accuracy(costh_m_s.detach(), label.detach(), topk=(1,))[0]
         return loss, prec1
 
