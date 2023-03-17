@@ -245,7 +245,8 @@ class ModelTrainer(object):
     def loadParameters(self, path):
 
         self_state = self.__model__.module.state_dict()
-        loaded_state = torch.load(path, map_location="cuda:%d" % self.gpu)
+        #loaded_state = torch.load(path, map_location="cuda:%d" % self.gpu)
+        loaded_state = torch.load(path)
         if len(loaded_state.keys()) == 1 and "model" in loaded_state:
             loaded_state = loaded_state["model"]
             newdict = {}

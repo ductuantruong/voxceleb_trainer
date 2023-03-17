@@ -64,9 +64,9 @@ parser.add_argument('--save_path',      type=str,   default="exps/exp1", help='P
 
 ## Training and test data
 parser.add_argument('--train_list',     type=str,   default="data/train_list.txt",  help='Train list')
-parser.add_argument('--test_list',      type=str,   default="data/test_list.txt",   help='Evaluation list')
+parser.add_argument('--test_list',      type=str,   default="data/test_trails_o.txt",   help='Evaluation list')
 parser.add_argument('--train_path',     type=str,   default="data/voxceleb2", help='Absolute path to the train set')
-parser.add_argument('--test_path',      type=str,   default="data/voxceleb1", help='Absolute path to the test set')
+parser.add_argument('--test_path',      type=str,   default="data/test_set_voxceleb1", help='Absolute path to the test set')
 parser.add_argument('--musan_path',     type=str,   default="data/musan_split", help='Absolute path to the test set')
 parser.add_argument('--rir_path',       type=str,   default="data/RIRS_NOISES/simulated_rirs", help='Absolute path to the test set')
 
