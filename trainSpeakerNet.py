@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(description = "SpeakerNet")
 parser.add_argument('--config',         type=str,   default=None,   help='Config YAML file')
 
 ## Data loader
-parser.add_argument('--max_frames',     type=int,   default=200,    help='Input length to the network for training')
+parser.add_argument('--max_frames',     type=int,   default=255,    help='Input length to the network for training')
 parser.add_argument('--eval_frames',    type=int,   default=300,    help='Input length to the network for testing 0 uses the whole files')
 parser.add_argument('--batch_size',     type=int,   default=200,    help='Batch size, number of speakers per batch')
 parser.add_argument('--max_seg_per_spk', type=int,  default=500,    help='Maximum number of utterances per speaker per epoch')
@@ -126,7 +126,7 @@ def main_worker(gpu, ngpus_per_node, args):
         torch.cuda.set_device(args.gpu)
         s.cuda(args.gpu)
 
-        s = torch.nn.parallel.DistributedDataParallel(s, device_ids=[args.gpu], find_unused_parameters=True)
+        s = torch.nn.parallel.DistributedDataParallel(s, device_ids=[args.gpu], find_unused_parameters=False)
 
         print('Loaded the model on GPU {:d}'.format(args.gpu))
 
